@@ -9,6 +9,8 @@ from ctypes import CFUNCTYPE, POINTER, c_int, c_uint, c_void_p
 from ctypes import byref
 import atexit
 
+from pyhooked import constants
+
 __version__ = '0.8.0'
 
 cmp_func = CFUNCTYPE(c_int, c_int, wintypes.HINSTANCE, POINTER(c_void_p))
@@ -57,154 +59,6 @@ class MouseEvent(object):
         self.mouse_y = mouse_y
 
 
-# The following section contains dictionaries that map key codes and other event codes to the event type (e.g. key up)
-# and the key or button doing the action (e.g. Tab)
-MOUSE_ID_TO_KEY = {512: 'Move',
-                   513: 'LButton',
-                   514: 'LButton',
-                   516: 'RButton',
-                   517: 'RButton',
-                   519: 'WheelButton',
-                   520: 'WheelButton',
-                   522: 'Wheel'}
-
-MOUSE_ID_TO_EVENT_TYPE = {512: None,
-                          513: 'key down',
-                          514: 'key up',
-                          516: 'key down',
-                          517: 'key up',
-                          519: 'key down',
-                          520: 'key up',
-                          522: None}
-
-# stores the relation between keyboard event codes and the key pressed. Reference:
-# https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
-# seems to only work on 32 bits
-ID_TO_KEY = {8: 'Back',
-             9: 'Tab',
-             13: 'Return',
-             20: 'Capital',
-             27: 'Escape',
-             32: 'Space',
-             33: 'Prior',
-             34: 'Next',
-             35: 'End',
-             36: 'Home',
-             37: 'Left',
-             38: 'Up',
-             39: 'Right',
-             40: 'Down',
-             44: 'PrtScr',
-             46: 'Delete',
-             48: '0',
-             49: '1',
-             50: '2',
-             51: '3',
-             52: '4',
-             53: '5',
-             54: '6',
-             55: '7',
-             56: '8',
-             57: '9',
-             65: 'A',
-             66: 'B',
-             67: 'C',
-             68: 'D',
-             69: 'E',
-             70: 'F',
-             71: 'G',
-             72: 'H',
-             73: 'I',
-             74: 'J',
-             75: 'K',
-             76: 'L',
-             77: 'M',
-             78: 'N',
-             79: 'O',
-             80: 'P',
-             81: 'Q',
-             82: 'R',
-             83: 'S',
-             84: 'T',
-             85: 'U',
-             86: 'V',
-             87: 'W',
-             88: 'X',
-             89: 'Y',
-             90: 'Z',
-             91: 'Lwin',
-             92: 'Rwin',
-             93: 'App',
-             95: 'Sleep',
-             96: 'Numpad0',
-             97: 'Numpad1',
-             98: 'Numpad2',
-             99: 'Numpad3',
-             100: 'Numpad4',
-             101: 'Numpad5',
-             102: 'Numpad6',
-             103: 'Numpad7',
-             104: 'Numpad8',
-             105: 'Numpad9',
-             106: 'Multiply',
-             107: 'Add',
-             109: 'Subtract',
-             110: 'Decimal',
-             111: 'Divide',
-             112: 'F1',
-             113: 'F2',
-             114: 'F3',
-             115: 'F4',
-             116: 'F5',
-             117: 'F6',
-             118: 'F7',
-             119: 'F8',
-             120: 'F9',
-             121: 'F10',
-             122: 'F11',
-             123: 'F12',
-             144: 'Numlock',
-             160: 'Lshift',
-             161: 'Rshift',
-             162: 'Lcontrol',
-             163: 'Rcontrol',
-             164: 'Lmenu',
-             165: 'Rmenu',
-             186: 'Oem_1',
-             187: 'Oem_Plus',
-             188: 'Oem_Comma',
-             189: 'Oem_Minus',
-             190: 'Oem_Period',
-             191: 'Oem_2',
-             192: 'Oem_3',
-             219: 'Oem_4',
-             220: 'Oem_5',
-             221: 'Oem_6',
-             222: 'Oem_7',
-             1001: 'mouse left',  # mouse hotkeys
-             1002: 'mouse right',
-             1003: 'mouse middle',
-             1000: 'mouse move',  # single event hotkeys
-             1004: 'mouse wheel up',
-             1005: 'mouse wheel down',
-             1010: 'Ctrl',  # merged hotkeys
-             1011: 'Alt',
-             1012: 'Shift',
-             1013: 'Win',
-             }
-
-event_types = {0x100: 'key down',  # WM_KeyDown for normal keys
-               0x101: 'key up',  # WM_KeyUp for normal keys
-               0x104: 'key down',  # WM_SYSKEYDOWN, used for Alt key.
-               0x105: 'key up',  # WM_SYSKEYUP, used for Alt key.
-               }
-# these are used for specifying the hook type we want to make
-WH_KEYBOARD_LL = 0x00D
-WH_MOUSE_LL = 0x0E
-# the Windows quit message, if the program quits while listening.
-WM_QUIT = 0x0012
-
-
 class Hook(object):
     """"Main hotkey class used to and listen for hotkeys. Set an event handler to check what keys are pressed."""
 
@@ -231,8 +85,8 @@ class Hook(object):
                 """Used to catch keyboard events and deal with the event"""
                 try:
                     key_code = 0xFFFFFFFF & kb_data_ptr[0]  # key code
-                    current_key = ID_TO_KEY[key_code]
-                    event_type = event_types[0xFFFFFFFF & event_code]
+                    current_key = constants.ID_TO_KEY[key_code]
+                    event_type = constants.event_types[0xFFFFFFFF & event_code]
 
                     if event_type == 'key down':  # add key to those down to list
                         self.pressed_keys.append(current_key)
@@ -253,7 +107,8 @@ class Hook(object):
 
             keyboard_pointer = _callback_pointer(keyboard_low_level_handler)
 
-            self.keyboard_id = SetWindowsHookExA(WH_KEYBOARD_LL, keyboard_pointer,
+            self.keyboard_id = SetWindowsHookExA(constants.WH_KEYBOARD_LL,
+                                                 keyboard_pointer,
                                                  GetModuleHandleA(None),
                                                  0)
 
@@ -261,10 +116,9 @@ class Hook(object):
             def mouse_low_level_handler(code, event_code, kb_data_ptr):
                 """Used to catch and deal with mouse events"""
                 try:
-                    current_key = MOUSE_ID_TO_KEY[
-                        event_code]  # check the type of event (see MOUSE_ID_TO_KEY for a list)
+                    current_key = constants.MOUSE_ID_TO_KEY[event_code]
                     if current_key != 'Move':  # if we aren't moving, then we deal with a mouse click
-                        event_type = MOUSE_ID_TO_EVENT_TYPE[event_code]
+                        event_type = constants.MOUSE_ID_TO_EVENT_TYPE[event_code]
                         # the first two members of kb_data_ptr hold the mouse position, x and y
                         event = MouseEvent(current_key, event_type, kb_data_ptr[0], kb_data_ptr[1])
 
@@ -276,8 +130,10 @@ class Hook(object):
                     return CallNextHookEx(self.mouse_id, code, event_code, kb_data_ptr)
 
             mouse_pointer = _callback_pointer(mouse_low_level_handler)
-            self.mouse_id = SetWindowsHookExA(WH_MOUSE_LL, mouse_pointer,
-                                              GetModuleHandleA(None), 0)
+            self.mouse_id = SetWindowsHookExA(constants.WH_MOUSE_LL,
+                                              mouse_pointer,
+                                              GetModuleHandleA(None),
+                                              0)
 
         atexit.register(UnhookWindowsHookEx, self.keyboard_id)
         atexit.register(UnhookWindowsHookEx, self.mouse_id)
