@@ -3,40 +3,14 @@ This file is part of pyhooked, an LGPL licensed pure Python hotkey module for Wi
 Copyright (C) 2016 Ethan Smith
 
 """
-import ctypes
-from ctypes import wintypes
-from ctypes import CFUNCTYPE, POINTER, c_int, c_uint, c_void_p
+
 from ctypes import byref
 import atexit
 
 from pyhooked import constants
+from pyhooked import win32
 
 __version__ = '0.8.0'
-
-cmp_func = CFUNCTYPE(c_int, c_int, wintypes.HINSTANCE, POINTER(c_void_p))
-
-# redefine names to avoid needless clutter
-GetModuleHandleA = ctypes.windll.kernel32.GetModuleHandleA
-SetWindowsHookExA = ctypes.windll.user32.SetWindowsHookExA
-GetMessageW = ctypes.windll.user32.GetMessageW
-DispatchMessageW = ctypes.windll.user32.DispatchMessageW
-TranslateMessage = ctypes.windll.user32.TranslateMessage
-CallNextHookEx = ctypes.windll.user32.CallNextHookEx
-UnhookWindowsHookEx = ctypes.windll.user32.UnhookWindowsHookEx
-
-# specify the argument and return types of functions
-GetModuleHandleA.restype = wintypes.HMODULE
-GetModuleHandleA.argtypes = [wintypes.LPCWSTR]
-SetWindowsHookExA.restype = c_int
-SetWindowsHookExA.argtypes = [c_int, cmp_func, wintypes.HINSTANCE, wintypes.DWORD]
-GetMessageW.argtypes = [POINTER(wintypes.MSG), wintypes.HWND, c_uint, c_uint]
-TranslateMessage.argtypes = [POINTER(wintypes.MSG)]
-DispatchMessageW.argtypes = [POINTER(wintypes.MSG)]
-
-
-def _callback_pointer(handler):
-    """Create and return C-pointer"""
-    return cmp_func(handler)
 
 
 class KeyboardEvent(object):
@@ -103,14 +77,14 @@ class Hook(object):
 
                 finally:
                     # TODO: fix return here to use non-blocking call
-                    return CallNextHookEx(self.keyboard_id, code, event_code, kb_data_ptr)
+                    return win32.CallNextHookEx(self.keyboard_id, code, event_code, kb_data_ptr)
 
-            keyboard_pointer = _callback_pointer(keyboard_low_level_handler)
+            keyboard_pointer = win32._callback_pointer(keyboard_low_level_handler)
 
-            self.keyboard_id = SetWindowsHookExA(constants.WH_KEYBOARD_LL,
-                                                 keyboard_pointer,
-                                                 GetModuleHandleA(None),
-                                                 0)
+            self.keyboard_id = win32.SetWindowsHookExA(constants.WH_KEYBOARD_LL,
+                                                       keyboard_pointer,
+                                                       win32.GetModuleHandleA(None),
+                                                       0)
 
         if self.mouse_is_hook:
             def mouse_low_level_handler(code, event_code, kb_data_ptr):
@@ -127,20 +101,20 @@ class Hook(object):
 
                 finally:
                     # TODO: fix return here to use non-blocking call
-                    return CallNextHookEx(self.mouse_id, code, event_code, kb_data_ptr)
+                    return win32.CallNextHookEx(self.mouse_id, code, event_code, kb_data_ptr)
 
-            mouse_pointer = _callback_pointer(mouse_low_level_handler)
-            self.mouse_id = SetWindowsHookExA(constants.WH_MOUSE_LL,
-                                              mouse_pointer,
-                                              GetModuleHandleA(None),
-                                              0)
+            mouse_pointer = win32._callback_pointer(mouse_low_level_handler)
+            self.mouse_id = win32.SetWindowsHookExA(constants.WH_MOUSE_LL,
+                                                    mouse_pointer,
+                                                    win32.GetModuleHandleA(None),
+                                                    0)
 
-        atexit.register(UnhookWindowsHookEx, self.keyboard_id)
-        atexit.register(UnhookWindowsHookEx, self.mouse_id)
+        atexit.register(win32.UnhookWindowsHookEx, self.keyboard_id)
+        atexit.register(win32.UnhookWindowsHookEx, self.mouse_id)
 
-        message = wintypes.MSG()
+        message = win32.wintypes.MSG()
         while self.mouse_is_hook or self.keyboard_is_hook:
-            msg = GetMessageW(byref(message), 0, 0, 0)
+            msg = win32.GetMessageW(byref(message), 0, 0, 0)
             if msg == -1:
                 self.unhook_keyboard()
                 self.unhook_mouse()
@@ -149,17 +123,17 @@ class Hook(object):
             elif msg == 0:  # GetMessage return 0 only if WM_QUIT
                 exit(0)
             else:
-                TranslateMessage(byref(message))
-                DispatchMessageW(byref(message))
+                win32.TranslateMessage(byref(message))
+                win32.DispatchMessageW(byref(message))
 
     def unhook_mouse(self):
         """Stop listening to the mouse"""
         if self.mouse_is_hook:
             self.mouse_is_hook = False
-            UnhookWindowsHookEx(self.mouse_id)
+            win32.UnhookWindowsHookEx(self.mouse_id)
 
     def unhook_keyboard(self):
         """Stop listening to the keyboard"""
         if self.keyboard_is_hook:
             self.keyboard_is_hook = False
-            UnhookWindowsHookEx(self.keyboard_id)
+            win32.UnhookWindowsHookEx(self.keyboard_id)
