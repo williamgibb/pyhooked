@@ -8,29 +8,10 @@ from ctypes import byref
 import atexit
 
 from pyhooked import constants
+from pyhooked import events
 from pyhooked import win32
 
 __version__ = '0.8.0'
-
-
-class KeyboardEvent(object):
-    """Class to describe an event triggered by the keyboard"""
-
-    def __init__(self, current_key=None, event_type=None, pressed_key=None, key_code=None):
-        self.current_key = current_key
-        self.event_type = event_type
-        self.pressed_key = pressed_key
-        self.key_code = key_code
-
-
-class MouseEvent(object):
-    """Class to describe an event triggered by the mouse"""
-
-    def __init__(self, current_key=None, event_type=None, mouse_x=None, mouse_y=None):
-        self.current_key = current_key
-        self.event_type = event_type
-        self.mouse_x = mouse_x
-        self.mouse_y = mouse_y
 
 
 class Hook(object):
@@ -69,7 +50,7 @@ class Hook(object):
                         self.pressed_keys.remove(current_key)
 
                     # wrap the keyboard information grabbed into a container class
-                    event = KeyboardEvent(current_key, event_type, self.pressed_keys, key_code)
+                    event = events.KeyboardEvent(current_key, event_type, self.pressed_keys, key_code)
 
                     # if we have an event handler, call it to deal with keys in the list
                     if self.handler:
@@ -94,7 +75,7 @@ class Hook(object):
                     if current_key != 'Move':  # if we aren't moving, then we deal with a mouse click
                         event_type = constants.MOUSE_ID_TO_EVENT_TYPE[event_code]
                         # the first two members of kb_data_ptr hold the mouse position, x and y
-                        event = MouseEvent(current_key, event_type, kb_data_ptr[0], kb_data_ptr[1])
+                        event = events.MouseEvent(current_key, event_type, kb_data_ptr[0], kb_data_ptr[1])
 
                         if self.handler:
                             self.handler(event)
